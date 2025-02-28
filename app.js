@@ -10,7 +10,13 @@ const cat = require("./routes/category");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 1000;
-app.use(cors());
+app.use(
+  cors({
+    origin: "https://milaanpublication.in", // Allow only your frontend
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true, // Allow cookies if needed
+  })
+);
 app.use(express.json());
 
 //Connection
