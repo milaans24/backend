@@ -1,11 +1,13 @@
 const router = require("express").Router();
 const Book = require("../models/book");
+const Cat = require("../models/categories");
 const { authenticateToken } = require("./userAuth");
 const User = require("../models/user");
 
 //create book -- admin
-router.post("/add-book", async (req, res) => {
+router.post("/add-book", authenticateToken, async (req, res) => {
   try {
+    const { category } = req.body;
     const book = new Book({
       url: req.body.url,
       title: req.body.title,
@@ -15,6 +17,12 @@ router.post("/add-book", async (req, res) => {
       language: req.body.language,
       category: req.body.category,
     });
+    const cat = await Cat.findOne({ title: category });
+    if (!cat) {
+      return res.status(500).json({ error: "Category not found" });
+    }
+    cat.books.push(book._id);
+    await cat.save();
     await book.save();
     return res.json({
       status: "Success",
@@ -22,7 +30,7 @@ router.post("/add-book", async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ message: "An error occurred" });
+    return res.status(500).json({ error: "An error occurred" });
   }
 });
 
@@ -110,11 +118,12 @@ router.get("/get-book-by-id/:id", async (req, res) => {
 //seach book functionality
 router.get("/search", async (req, res) => {
   try {
-    const query = req.query.q.toLowerCase(); // Convert query to lowercase
+    const query = req.query.book.toLowerCase(); // Convert query to lowercase
     const books = await Book.find({ title: { $regex: query, $options: "i" } }); // Case-insensitive search
-    res.json({ data: books });
+    res.status(201).json({ data: books });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
+    console.log(err);
   }
 });
 router.get("/books-by-category/:category", async (req, res) => {
