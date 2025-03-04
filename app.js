@@ -7,12 +7,13 @@ const cart = require("./routes/cart");
 const fav = require("./routes/favourite");
 const order = require("./routes/order");
 const cat = require("./routes/category");
+const emailHelper = require("./routes/email");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 1000;
 app.use(
   cors({
-    origin: "https://milaanpublication.in", // Allow only your frontend
+    origin: ["https://milaanpublication.in", "http://localhost:5173"], // Allow only your frontend
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true, // Allow cookies if needed
   })
@@ -29,6 +30,7 @@ app.use("/api/v1", cart);
 app.use("/api/v1", fav);
 app.use("/api/v1", order);
 app.use("/api/v1", cat);
+app.use("/api", emailHelper);
 
 //SERVER
 app.listen(PORT, () => {
