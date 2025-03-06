@@ -70,8 +70,10 @@ router.post("/sign-up", async (req, res) => {
 //login
 router.post("/login", async (req, res) => {
   try {
-    const { username, password } = req.body;
-    const user = await User.findOne({ username });
+    const { usernameOrEmail: username, password } = req.body;
+    const user = await User.findOne({
+      $or: [{ username: username }, { email: username }],
+    });
     if (!user) {
       return res.status(400).json({ message: "Invalid Credentials" });
     }

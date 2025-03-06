@@ -1,10 +1,16 @@
 const router = require("express").Router();
 const nodemailer = require("nodemailer");
-router.post("/send-email", async (req, res) => {
-  const { name, mobile, aboutBook, package } = req.body;
 
-  if (!name || !mobile || !aboutBook || !package) {
+router.post("/send-email", async (req, res) => {
+  const { name, email, mobile, aboutBook, package } = req.body;
+
+  if (!name || !email || !mobile || !aboutBook || !package) {
     return res.status(400).json({ error: "All fields are required" });
+  }
+
+  // Validate email format
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    return res.status(400).json({ error: "Invalid email address" });
   }
 
   // Validate mobile number (should be exactly 10 digits)
@@ -15,21 +21,22 @@ router.post("/send-email", async (req, res) => {
   try {
     // Nodemailer transport setup
     let transporter = nodemailer.createTransport({
-      service: "gmail", // or use SMTP host
+      service: "gmail",
       auth: {
-        user: process.env.EMAIL, // Your email
-        pass: process.env.PASSWORD, // Your email app password (not the actual password)
+        user: process.env.EMAIL,
+        pass: process.env.PASSWORD,
       },
     });
 
     // Email content
     let mailOptions = {
-      from: process.env.EMAIL,
+      from: email,
       to: "ghaiprabhghai@gmail.com", // Change this to the recipient email
       subject: "New Package Inquiry",
       html: `
           <h2>New Package Inquiry</h2>
           <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
           <p><strong>Mobile:</strong> ${mobile}</p>
           <p><strong>About the Book:</strong> ${aboutBook}</p>
           <p><strong>Selected Package:</strong> ${package}</p>
@@ -37,10 +44,14 @@ router.post("/send-email", async (req, res) => {
     };
 
     await transporter.sendMail(mailOptions);
-    res.status(200).json({ success: "Email sent successfully!" });
+    res.status(200).json({
+      success: "Thank you for your inquiry! Our team will contact you soon.",
+    });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ error: "Failed to send email" });
+    res
+      .status(500)
+      .json({ error: "Failed to send your inquiry. Please try again later." });
   }
 });
 
