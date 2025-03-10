@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const user = new mongoose.Schema(
+const userSchema = new mongoose.Schema(
   {
     username: {
       type: String,
@@ -15,9 +15,12 @@ const user = new mongoose.Schema(
       type: String,
       required: true,
     },
-    address: {
-      type: String,
-    },
+    address: [
+      {
+        type: String,
+      },
+    ], // User can save multiple addresses
+
     avatar: {
       type: String,
       default: "https://cdn-icons-png.flaticon.com/128/3177/3177440.png",
@@ -33,12 +36,21 @@ const user = new mongoose.Schema(
         ref: "books",
       },
     ],
-    cart: [
-      {
-        type: mongoose.Types.ObjectId,
-        ref: "books",
+    cart: {
+      books: [
+        {
+          bookId: { type: mongoose.Types.ObjectId, ref: "books" },
+          quantity: {
+            type: Number,
+            default: 1,
+            min: 1,
+          },
+        },
+      ],
+      address: {
+        type: String,
       },
-    ],
+    },
     orders: [
       {
         type: mongoose.Types.ObjectId,
@@ -49,4 +61,4 @@ const user = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("user", user);
+module.exports = mongoose.model("user", userSchema);

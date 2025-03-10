@@ -1,89 +1,107 @@
 const router = require("express").Router();
 const User = require("../models/user");
 const { authenticateToken } = require("./userAuth");
-const Book = require("../models/book");
 const Order = require("../models/order");
 
-//place order
+// Place Order
 router.post("/place-order", authenticateToken, async (req, res) => {
   try {
     const { id } = req.headers;
-    const { order } = req.body;
-    for (const orderData of order) {
-      const newOrder = new Order({ user: id, book: orderData._id });
-      const orderDataFromDb = await newOrder.save();
-      //saving Order in user model
-      await User.findByIdAndUpdate(id, {
-        $push: { orders: orderDataFromDb._id },
-      });
-      //clearing cart
-      await User.findByIdAndUpdate(id, {
-        $pull: { cart: orderData._id },
+    const { order, address } = req.body;
+
+    if (!address.trim()) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Address is required to place an order",
       });
     }
+
+    if (!order || order.length === 0) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Cart is empty",
+      });
+    }
+
+    const formattedOrder = order.map((item) => ({
+      book: item.bookId._id,
+      quantity: item.quantity,
+    }));
+
+    const newOrder = new Order({
+      user: id,
+      books: formattedOrder,
+      address,
+    });
+
+    const savedOrder = await newOrder.save();
+
+    // Add order ID to the user's order history
+    await User.findByIdAndUpdate(id, {
+      $push: { orders: savedOrder._id },
+      $set: { cart: { books: [], address: "" } }, // Reset cart properly
+    });
+
     return res.json({
       status: "Success",
-      message: "Order Placed Successfully",
+      message: "Order placed successfully",
     });
   } catch (error) {
-    console.log(error);
+    console.error("Error placing order:", error);
     return res.status(500).json({ message: "An error occurred" });
   }
 });
 
-//get order history of particular user
+// Get order history of a particular user
 router.get("/get-order-history", authenticateToken, async (req, res) => {
   try {
     const { id } = req.headers;
-    const userData = await User.findById(id).populate({
-      path: "orders",
-      populate: { path: "book" },
-    });
 
-    const ordersData = userData.orders.reverse();
+    const orders = await Order.find({ user: id }).populate("books.book").exec();
+
     return res.json({
       status: "Success",
-      data: ordersData,
+      data: orders.reverse(),
     });
   } catch (error) {
-    console.log(error);
+    console.error("Error fetching order history:", error);
     return res.status(500).json({ message: "An error occurred" });
   }
 });
 
-//get-all-orders ---admin
+// Get all orders (Admin)
 router.get("/get-all-orders", authenticateToken, async (req, res) => {
   try {
-    const userData = await Order.find()
-      .populate({
-        path: "book",
-      })
-      .populate({
-        path: "user",
-      })
-      .sort({ createdAt: -1 });
+    const orders = await Order.find()
+      .populate("books.book")
+      .populate("user", "username email") // Correct populate call
+      .sort({ createdAt: -1 })
+      .exec();
+    //console.log(orders);
     return res.json({
       status: "Success",
-      data: userData,
+      data: orders,
     });
   } catch (error) {
-    console.log(error);
+    console.error("Error fetching all orders:", error);
     return res.status(500).json({ message: "An error occurred" });
   }
 });
 
-//update order --admin
+// Update order status (Admin)
 router.put("/update-status/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     await Order.findByIdAndUpdate(id, { status: req.body.status });
+
     return res.json({
       status: "Success",
-      message: "Status Updated Successfully",
+      message: "Status updated successfully",
     });
   } catch (error) {
-    console.log(error);
+    console.error("Error updating order status:", error);
     return res.status(500).json({ message: "An error occurred" });
   }
 });
+
 module.exports = router;

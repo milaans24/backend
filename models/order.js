@@ -1,14 +1,29 @@
 const mongoose = require("mongoose");
 
-const order = new mongoose.Schema(
+const orderSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Types.ObjectId,
       ref: "user",
+      required: true,
     },
-    book: {
-      type: mongoose.Types.ObjectId,
-      ref: "books",
+    books: [
+      {
+        book: {
+          type: mongoose.Types.ObjectId,
+          ref: "books",
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          required: true,
+          min: 1,
+        },
+      },
+    ],
+    address: {
+      type: String,
+      required: true,
     },
     status: {
       type: String,
@@ -19,4 +34,4 @@ const order = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("order", order);
+module.exports = mongoose.model("order", orderSchema);
