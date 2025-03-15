@@ -7,29 +7,40 @@ const User = require("../models/user");
 //create book -- admin
 router.post("/add-book", authenticateToken, async (req, res) => {
   try {
-    const { category } = req.body;
+    const urls = req.body.images;
+    const { category, title, author, price, desc, language } = req.body;
+
+    if (!urls || !Array.isArray(urls) || urls.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "At least one image URL is required" });
+    }
+
     const book = new Book({
-      url: req.body.url,
-      title: req.body.title,
-      author: req.body.author,
-      price: req.body.price,
-      desc: req.body.desc,
-      language: req.body.language,
-      category: req.body.category,
+      urls, // Updated to store multiple image URLs
+      title,
+      author,
+      price,
+      desc,
+      language,
+      category,
     });
+
     const cat = await Cat.findOne({ title: category });
     if (!cat) {
-      return res.status(500).json({ error: "Category not found" });
+      return res.status(400).json({ error: "Category not found" });
     }
+
     cat.books.push(book._id);
     await cat.save();
     await book.save();
+
     return res.json({
       status: "Success",
       message: "Book added successfully!",
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return res.status(500).json({ error: "An error occurred" });
   }
 });
@@ -39,12 +50,13 @@ router.put("/update-book", authenticateToken, async (req, res) => {
   try {
     const { bookid } = req.headers;
     await Book.findByIdAndUpdate(bookid, {
-      url: req.body.url,
+      urls: req.body.images, // Now handling multiple image URLs
       title: req.body.title,
       author: req.body.author,
       price: req.body.price,
       desc: req.body.desc,
       language: req.body.language,
+      category: req.body.category, // Added category field for updates
     });
 
     return res.json({

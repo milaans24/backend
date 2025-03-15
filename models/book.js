@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 
-const book = new mongoose.Schema(
+const bookSchema = new mongoose.Schema(
   {
-    url: {
-      type: String,
+    urls: {
+      type: [String], // Changed from a single string to an array of strings
       required: true,
     },
     title: {
@@ -34,4 +34,4 @@ const book = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("books", book);
+module.exports = mongoose.model("books", bookSchema);
