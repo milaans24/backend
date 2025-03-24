@@ -25,11 +25,31 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    status: {
+    orderStatus: {
       type: String,
-      default: "Order placed",
-      enum: ["Order placed", "Out for delivery", "Delivered", "Canceled"],
+      default: "Order not placed",
+      enum: [
+        "Order not placed",
+        "In progress",
+        "Order placed",
+        "Out for delivery",
+        "Delivered",
+        "Canceled",
+      ],
     },
+    manualPayment: {
+      type: Boolean,
+      default: false,
+    },
+    paymentStatus: {
+      type: String,
+      default: "Not done",
+      enum: ["Not done", "In progress", "Failed", "Success"],
+    },
+    transactionId: {
+      type: String,
+    },
+    total: { type: Number, required: true },
   },
   { timestamps: true }
 );
