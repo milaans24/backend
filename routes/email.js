@@ -31,7 +31,7 @@ router.post("/send-email", async (req, res) => {
     // Email content
     let mailOptions = {
       from: email,
-      to: "ghaiprabhghai@gmail.com", // Change this to the recipient email
+      to: process.env.EMAIL, // Change this to the recipient email
       subject: "New Package Inquiry",
       html: `
           <h2>New Package Inquiry</h2>
