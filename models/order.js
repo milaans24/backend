@@ -25,6 +25,10 @@ const orderSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    mobileNumber: {
+      type: String,
+      required: true,
+    },
     orderStatus: {
       type: String,
       default: "Order not placed",

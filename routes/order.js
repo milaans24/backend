@@ -8,12 +8,18 @@ const sendEmail = require("../utils/sendEmail");
 router.post("/place-order", authenticateToken, async (req, res) => {
   try {
     const { id } = req.headers;
-    const { order, address, total } = req.body;
+    const { order, address, total, mobileNumber } = req.body;
 
     if (!address.trim()) {
       return res.status(400).json({
         status: "Failed",
         message: "Address is required to place an order",
+      });
+    }
+    if (mobileNumber.trim().length < 10 || mobileNumber.trim().length > 10) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Please enter a valid mobile number",
       });
     }
 
@@ -33,6 +39,7 @@ router.post("/place-order", authenticateToken, async (req, res) => {
       user: id,
       books: formattedOrder,
       address,
+      mobileNumber,
       total,
     });
 
