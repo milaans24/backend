@@ -35,9 +35,10 @@ router.put("/add-to-cart", authenticateToken, async (req, res) => {
     }
 
     await userData.save();
-
+    const cartSize = userData.cart.books.length;
     return res.json({
       status: "Success",
+      cartSize: cartSize,
       message: existingCartItem
         ? "Book quantity updated in cart"
         : "Book added to cart",
@@ -166,6 +167,7 @@ router.put("/remove-from-cart/:bookid", authenticateToken, async (req, res) => {
       status: "Success",
       message: "Book removed from cart",
       cart: updatedUser.cart, // Return updated cart
+      cartSize: updatedUser.cart.books.length,
     });
   } catch (error) {
     console.error("Error removing book from cart:", error);

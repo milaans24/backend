@@ -2,6 +2,8 @@ const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/user");
+const crypto = require("crypto");
+const sendEmail = require("../utils/sendEmail");
 const { authenticateToken } = require("./userAuth");
 
 //Sign - up
@@ -67,6 +69,80 @@ router.post("/sign-up", async (req, res) => {
   }
 });
 
+//forgot-password-reset
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour expiration
+    await user.save();
+
+    // Create reset link
+    const resetLink = `${process.env.FRONTEND_LINK}/reset-password/${resetToken}`;
+
+    // Send email
+    const emailContent = `<p>You requested a password reset. Click the link below to reset your password:</p>
+      <a href="${resetLink}">${resetLink}</a>
+      <p>If you did not request this, please ignore this email.</p>`;
+
+    await sendEmail({
+      to: user.email,
+      subject: "Password Reset",
+      html: emailContent,
+    });
+
+    res.status(200).json({ message: "Password reset link sent to your email" });
+  } catch (error) {
+    console.error("Forgot Password Error:", error);
+    res
+      .status(500)
+      .json({ message: "Something went wrong. Please try again." });
+  }
+});
+
+//reset-password
+
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    // Find user by reset token
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }, // Check if token is still valid
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Reset link expired. Please request a new one.",
+      });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+
+    // Remove reset token fields
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    res.status(200).json({ message: "Password reset successfully." });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "Server error, please try again later." });
+  }
+});
+
 //login
 router.post("/login", async (req, res) => {
   try {
@@ -106,8 +182,7 @@ router.post("/login", async (req, res) => {
 router.get("/getUserData", authenticateToken, async (req, res) => {
   try {
     const { id } = req.headers;
-
-    const data = await User.findById(id);
+    const data = await User.findById(id).select("-password");
     return res.status(200).json(data);
   } catch (error) {
     return res.status(500).json({ message: "An error occurred" });

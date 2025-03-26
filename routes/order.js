@@ -165,16 +165,18 @@ router.put(
 
       // 📨 User Email Template
       const emailTemplateUser = `
-        <h2>Order Confirmation</h2>
-        <p>Dear ${getUser.username},</p>
-        <p>Thank you for your order! Your order is now <strong>In Progress</strong>.</p>
-        <p><strong>Transaction ID:</strong> ${transactionId}</p>
-        <p><strong>Total Amount:</strong> ₹${order.total}</p>
-        <p>We will notify you with further updates.</p>
+      <p>Dear Buyer,</p>
+      <p>Your pre-order has been successfully accepted. </p>
+      <p>You will recieve a conirmation email shortly with details about the dispatch date and time of your book. </p>
+      <p>If you have any questions, feel free to contact us.</p>
+      <p><strong>Transaction ID:</strong> ${transactionId}</p>
+      <p><strong>Total Amount:</strong> ₹${order.total}</p>
+      <p>Best regards, </p>
+      <p>Milaan Publication Team</p>
       `;
       await sendEmail({
         to: getUser.email,
-        subject: "Your Order is in Progress",
+        subject: "Your Order Has Accepted",
         html: emailTemplateUser,
       });
 
@@ -245,12 +247,10 @@ router.put(
       order.paymentStatus = paymentStatus;
       await order.save();
 
-      res
-        .status(200)
-        .json({
-          success: true,
-          message: "Payment status updated successfully",
-        });
+      res.status(200).json({
+        success: true,
+        message: "Payment status updated successfully",
+      });
     } catch (error) {
       console.error("Failed to update payment status:", error);
       res

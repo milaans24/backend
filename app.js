@@ -8,6 +8,7 @@ const fav = require("./routes/favourite");
 const order = require("./routes/order");
 const cat = require("./routes/category");
 const emailHelper = require("./routes/email");
+const contactUs = require("./routes/contactUs");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 1000;
@@ -31,6 +32,7 @@ app.use("/api/v1", fav);
 app.use("/api/v1", order);
 app.use("/api/v1", cat);
 app.use("/api", emailHelper);
+app.use("/api/v1", contactUs);
 
 //SERVER
 app.listen(PORT, () => {
