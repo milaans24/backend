@@ -8,7 +8,7 @@ const sendEmail = require("../utils/sendEmail");
 router.post("/place-order", authenticateToken, async (req, res) => {
   try {
     const { id } = req.headers;
-    const { order, address, total, mobileNumber } = req.body;
+    const { order, address, total, mobileNumber, Name, PinCode } = req.body;
 
     if (!address.trim()) {
       return res.status(400).json({
@@ -16,10 +16,22 @@ router.post("/place-order", authenticateToken, async (req, res) => {
         message: "Address is required to place an order",
       });
     }
+    if (!Name.trim()) {
+      return res.status(400).json({
+        status: "Failed",
+        message: "Name is required to place an order",
+      });
+    }
     if (mobileNumber.trim().length < 10 || mobileNumber.trim().length > 10) {
       return res.status(400).json({
         status: "Failed",
         message: "Please enter a valid mobile number",
+      });
+    }
+    if (PinCode.trim().length < 6 || PinCode.trim().length > 6) {
+      return res.status(400).json({
+        status: "Failed",
+        error: "Please enter a valid pin code",
       });
     }
 
@@ -38,9 +50,11 @@ router.post("/place-order", authenticateToken, async (req, res) => {
     const newOrder = new Order({
       user: id,
       books: formattedOrder,
+      name: Name,
       address,
       mobileNumber,
       total,
+      pinCode: PinCode,
     });
 
     const savedOrder = await newOrder.save();
@@ -201,6 +215,9 @@ router.put(
         <ul>${booksDetails}</ul>
         <p><strong>Transaction ID:</strong> ${transactionId}</p>
         <p><strong>Total Amount:</strong> ₹${order.total}</p>
+        <p><strong>Name:</strong> ${order.name}</p>
+        <p><strong>Mobile Number:</strong> ${order.mobileNumber}</p>
+        <p><strong>Pin Code:</strong> ${order.pinCode}</p>
         <p><strong>Address:</strong> ${order.address}</p>
       `;
       await sendEmail({
