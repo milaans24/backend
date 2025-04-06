@@ -53,69 +53,93 @@ router.post("/submit-poetry", upload.single("pdf"), async (req, res) => {
   }
 });
 
-router.post("/payment-verification", async (req, res) => {
-  try {
-    const { transactionId, submissionId } = req.body;
+router.post(
+  "/payment-verification",
+  upload.single("screenshot"),
+  async (req, res) => {
+    try {
+      const { transactionId, submissionId } = req.body;
 
-    if (!transactionId || !submissionId) {
-      return res
-        .status(400)
-        .json({ error: "Transaction ID and Submission ID are required." });
-    }
+      if (!submissionId) {
+        return res.status(400).json({ error: "Submission ID is required." });
+      }
 
-    const submission = submissions[submissionId];
+      if (!req.file) {
+        return res.status(400).json({ error: "Screenshot is required." });
+      }
 
-    if (!submission) {
-      return res.status(404).json({ error: "Submission not found." });
-    }
+      const submission = submissions[submissionId];
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found." });
+      }
 
-    const { fullName, email, phoneNumber, language, pdfUrl } = submission;
+      // Upload screenshot to Cloudinary
+      const screenshotResult = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: "poetry-payment-screenshots",
+            resource_type: "image",
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        uploadStream.end(req.file.buffer);
+      });
 
-    // Send confirmation email to the user
-    const userTemplate = `<p>Dear ${fullName},  </p>
-    <p>Thank you for submitting your entry for our Poetry Competition. We truly appreciate your creativity and the effort you have put into your work. </p> 
-      <p>Here are the details of your submission: </p>
+      const { fullName, email, phoneNumber, language, pdfUrl } = submission;
+
+      // Email to user
+      const userTemplate = `<p>Dear ${fullName},</p>
+      <p>Thank you for submitting your entry for our Poetry Competition. Here are the details:</p>
       <ul>
-       <li>Submission Title: Milaan Poetry Competition </li>
-       <li>Submission Date : ${new Date().toDateString()}  </li>
-       <li>Submitted By : ${fullName} </li>
+        <li>Submission Title: Milaan Poetry Competition</li>
+        <li>Submission Date: ${new Date().toDateString()}</li>
+        <li>Submitted By: ${fullName}</li>
       </ul>
-      <p>Our team is currently reviewing all submissions. The results will be announced soon on our official Instagram page <a href="https://www.instagram.com/milaanpublications?igsh=MThhcnNoNmp1ZTdidQ==">@milaanpublications</a> </p>
-      <p>If you are selected as a winner, we will personally reach out to you via email and the contact number you provided at the time of submission.
- </p>
- <p>Thank you once again for being a part of this creative journey. We wish you the best of luck! </p>
- <p>Warm regards, </p>
- <p>Team Milaan Publication
- </p>
- <p>Email: info.milaanpublication@gmail.com
- </p>`;
-    await sendEmail({
-      to: email,
-      subject: "Thank You for Submitting Your Poetry Entry!",
-      html: userTemplate,
-    });
+      <p>We have received your payment screenshot. Our team will verify and update you shortly.</p>
+      <p>Follow us on Instagram: <a href="https://www.instagram.com/milaanpublications">@milaanpublications</a></p>
+      <p>Warm regards, <br/>Team Milaan Publication</p>`;
 
-    // Send notification email to the admin
-    const adminTemplate = `
-        <p>Full Name: ${fullName}</p>
-        <p>Email: ${email}</p>
-        <p>Phone Number: ${phoneNumber}</p>
-        <p>Language: ${language}</p>
-        <p>PDF: <a href="${pdfUrl}">Download</a></p>
-      `;
-    await sendEmail({
-      to: process.env.EMAIL,
-      subject: "New Poetry Submission",
-      html: adminTemplate,
-    });
+      await sendEmail({
+        to: email,
+        subject: "Thank You for Submitting Your Poetry Entry!",
+        html: userTemplate,
+      });
 
-    // Optionally, remove the submission from temporary storage
-    delete submissions[submissionId];
+      // Email to admin
+      const adminTemplate = `
+      <p><strong>New Poetry Submission</strong></p>
+      <p>Full Name: ${fullName}</p>
+      <p>Email: ${email}</p>
+      <p>Phone Number: ${phoneNumber}</p>
+      <p>Language: ${language}</p>
+      <p>PDF: <a href="${pdfUrl}">Download</a></p>
+      ${
+        transactionId
+          ? `<p>Transaction ID: ${transactionId}</p>`
+          : "<p>Transaction ID: <i>Not provided</i></p>"
+      }
+      <p>Screenshot: <a href="${
+        screenshotResult.secure_url
+      }" target="_blank">View Screenshot</a></p>
+    `;
 
-    res.status(200).json({ message: "Payment verified and emails sent." });
-  } catch (error) {
-    console.error("Error during payment verification:", error);
-    res.status(500).json({ error: "Internal server error." });
+      await sendEmail({
+        to: process.env.EMAIL,
+        subject: "New Poetry Submission",
+        html: adminTemplate,
+      });
+
+      delete submissions[submissionId];
+
+      res.status(200).json({ message: "Payment verified and emails sent." });
+    } catch (error) {
+      console.error("Error during payment verification:", error);
+      res.status(500).json({ error: "Internal server error." });
+    }
   }
-});
+);
+
 module.exports = router;
