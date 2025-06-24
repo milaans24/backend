@@ -10,6 +10,8 @@ const cat = require("./routes/category");
 const emailHelper = require("./routes/email");
 const contactUs = require("./routes/contactUs");
 const poetryRoutes = require("./routes/poetrySubmission");
+const eventCatRoutes = require("./routes/eventCategory");
+const eventRoutes = require("./routes/event");
 require("dotenv").config();
 
 const PORT = process.env.PORT || 1000;
@@ -35,6 +37,8 @@ app.use("/api/v1", cat);
 app.use("/api", emailHelper);
 app.use("/api/v1", contactUs);
 app.use("/api/v1", poetryRoutes);
+app.use("/api/v1", eventCatRoutes);
+app.use("/api/v1", eventRoutes);
 
 //SERVER
 app.listen(PORT, () => {

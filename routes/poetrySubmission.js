@@ -6,6 +6,12 @@ const { v4: uuidv4 } = require("uuid");
 
 // Temporary storage for submissions
 const submissions = {};
+const {
+  PHONEPE_MERCHANT_ID,
+  PHONEPE_SALT_KEY,
+  PHONEPE_SALT_INDEX,
+  PHONEPE_CALLBACK_URL,
+} = process.env;
 
 router.post("/submit-poetry", upload.single("pdf"), async (req, res) => {
   try {
@@ -141,5 +147,51 @@ router.post(
     }
   }
 );
+
+router.post("/initiate-payment", async (req, res) => {
+  try {
+    const { amount, submissionId, userPhone, userEmail } = req.body;
+
+    const merchantTransactionId = "TXN" + Date.now(); // unique transaction ID
+    const payload = {
+      merchantId: PHONEPE_MERCHANT_ID,
+      merchantTransactionId,
+      merchantUserId: submissionId,
+      amount: amount * 100, // in paise
+      redirectUrl: PHONEPE_CALLBACK_URL,
+      redirectMode: "POST",
+      mobileNumber: userPhone,
+      paymentInstrument: {
+        type: "PAY_PAGE",
+      },
+    };
+
+    const base64Payload = Buffer.from(JSON.stringify(payload)).toString(
+      "base64"
+    );
+    const dataToHash = base64Payload + "/pg/v1/pay" + PHONEPE_SALT_KEY;
+    const checksum =
+      crypto.createHash("sha256").update(dataToHash).digest("hex") +
+      "###" +
+      PHONEPE_SALT_INDEX;
+
+    const response = await axiosInstance.post(
+      "https://api.phonepe.com/apis/hermes/pg/v1/pay",
+      { request: base64Payload },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-VERIFY": checksum,
+        },
+      }
+    );
+
+    const paymentUrl = response.data.data.instrumentResponse.redirectInfo.url;
+    res.status(200).json({ paymentUrl });
+  } catch (error) {
+    console.error("PhonePe Error:", error.response?.data || error.message);
+    res.status(500).json({ error: "Failed to initiate payment." });
+  }
+});
 
 module.exports = router;
