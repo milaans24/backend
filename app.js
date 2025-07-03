@@ -17,7 +17,7 @@ require("dotenv").config();
 const PORT = process.env.PORT || 1000;
 app.use(
   cors({
-    origin: ["https://milaanpublication.in", "http://localhost:5173"], // Allow only your frontend
+    origin: ["https://milaanpublications.in", "http://localhost:5173"], // Allow only your frontend
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true, // Allow cookies if needed
   })
